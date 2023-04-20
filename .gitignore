@@ -1,3 +1,8 @@
+*.zarr
+snapshots
+log
+*_checkpoint_*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
