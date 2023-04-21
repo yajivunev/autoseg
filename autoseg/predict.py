@@ -56,13 +56,19 @@ def predict(
             "lsds" : Write only local shape descriptors.
             None : Writes nothing. Returns the output arrays in memory. 
     """
+   
+    # import model from model_path and make instance
+    sys.path.append(os.path.dirname(model_path))
+    from model import model
+
+    model.eval()
 
     # get checkpoint iteration
     iteration = checkpoint_path.split('_')[-1]
 
     # I/O shapes and sizes
     # TO-DO: get I/O shapes from model_path?
-    increase = gp.Coordinate([16, 8*12, 8*12])
+    increase = gp.Coordinate([32, 8*16, 8*16])
     input_shape = gp.Coordinate([24, 196, 196]) + increase
     output_shape = gp.Coordinate([8, 104, 104]) + increase
 
@@ -133,12 +139,6 @@ def predict(
                 write_size=output_size,
                 compressor={'id': 'blosc'},
                 num_channels=3)
-   
-    # import model from model_path and make instance
-    sys.path.append(os.path.dirname(model_path))
-    from model import model 
-
-    model.eval()
 
     predict = gp.torch.Predict(
             model,
@@ -219,10 +219,11 @@ if __name__ == "__main__":
 
     raw_file = sys.argv[1]
     raw_dataset = "raw"
-    roi = None#((500,4000,4000),(1500,8000,8000))
+    #roi = ((500,4000,4000),(1500,8000,8000))
+    roi = ((50, 4160, 5008),(260*50,763*8,1004*8))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[2]
-    out_file = "test.zarr"
+    out_file = raw_file#"test.zarr"
 
     predict(
         raw_file,
@@ -231,4 +232,4 @@ if __name__ == "__main__":
         model_path,
         checkpoint_path,
         out_file,
-        write="all")
+        write="affs")

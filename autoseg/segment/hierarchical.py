@@ -108,6 +108,7 @@ if __name__ == "__main__":
 
     pred_file = sys.argv[1]
     pred_dataset = sys.argv[2]
+    roi = ((22*50, 645*8, 748*8),((260-44)*50,(763-200)*8,(1004-200)*8))
 
     segs, roi = run(
         pred_file,

@@ -90,3 +90,30 @@ model = MtlsdModel(
             [[3, 3, 3], [3, 3, 3]],
             [[3, 3, 3], [3, 3, 3]]]
         )
+
+inference_array_keys = [
+        {
+            "RAW": 1
+            },
+        {
+            "PRED_LSDS": 10,
+            "PRED_AFFS": 3
+            }
+        ]
+
+training_array_keys = [
+        {
+            "RAW": 1
+            },
+        {
+            "LABELS": 1,
+            "UNLABELLED": 1,
+            "PRED_LSDS": 10,
+            "GT_LSDS": 10,
+            "LSDS_WEIGHTS": 10,
+            "PRED_AFFS": 3,
+            "GT_AFFS": 3,
+            "AFFS_WEIGHTS": 3,
+            "GT_AFFS_MASK": 3
+            }
+        ]
