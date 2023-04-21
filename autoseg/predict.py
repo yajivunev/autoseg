@@ -1,8 +1,8 @@
 import os
 import sys
 import gunpowder as gp
-from funlib.geometry import Roi, Coordinate
-from funlib.persistence import prepare_ds
+import numpy as np
+import daisy
 
 
 def predict(
@@ -62,14 +62,14 @@ def predict(
 
     # I/O shapes and sizes
     # TO-DO: get I/O shapes from model_path?
-    increase = Coordinate([16, 8*12, 8*12])
-    input_shape = Coordinate([24, 196, 196]) + increase
-    output_shape = Coordinate([8, 104, 104]) + increase
+    increase = gp.Coordinate([16, 8*12, 8*12])
+    input_shape = gp.Coordinate([24, 196, 196]) + increase
+    output_shape = gp.Coordinate([8, 104, 104]) + increase
 
     # nm
     # TO-DO: ask for voxel_size; 
     # if raw's voxel_size <= given voxel_size, Downsample. else Error.
-    voxel_size = Coordinate([50, 8, 8])
+    voxel_size = gp.Coordinate([50, 8, 8])
     input_size = input_shape * voxel_size
     output_size = output_shape * voxel_size
     context = (input_size - output_size) / 2
@@ -102,15 +102,15 @@ def predict(
             total_input_roi = source.spec[raw].roi.grow(context,context)
 
     else:
-        total_output_roi = Roi(roi[0],roi[1])
+        total_output_roi = gp.Roi(gp.Coordinate(roi[0]),gp.Coordinate(roi[1]))
         total_input_roi = total_output_roi.grow(context,context)
 
     # prepare output zarr datasets
     if write=="all" or write=="lsds":
-        prepare_ds(
+        daisy.prepare_ds(
                 out_file,
                 lsds_out_ds,
-                Roi(
+                daisy.Roi(
                     total_output_roi.get_offset(),
                     total_output_roi.get_shape()
                 ),
@@ -121,10 +121,10 @@ def predict(
                 num_channels=10)
     
     if write=="all" or write=="affs":
-        prepare_ds(
+        daisy.prepare_ds(
                 out_file,
                 affs_out_ds,
-                Roi(
+                daisy.Roi(
                     total_output_roi.get_offset(),
                     total_output_roi.get_shape()
                 ),
@@ -136,7 +136,7 @@ def predict(
    
     # import model from model_path and make instance
     sys.path.append(os.path.dirname(model_path))
-    from model import * 
+    from model import model 
 
     model.eval()
 
@@ -214,11 +214,12 @@ def predict(
     else:
         return total_output_roi.get_begin()
 
+
 if __name__ == "__main__":
 
     raw_file = sys.argv[1]
     raw_dataset = "raw"
-    roi = None
+    roi = None#((500,4000,4000),(1500,8000,8000))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[2]
     out_file = "test.zarr"
@@ -230,4 +231,4 @@ if __name__ == "__main__":
         model_path,
         checkpoint_path,
         out_file,
-        write="all"):
+        write="all")
