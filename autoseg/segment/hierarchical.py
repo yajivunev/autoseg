@@ -6,7 +6,7 @@ import zarr
 from skimage.transform import rescale
 import waterz
 
-from watershed import watershed_from_affinities
+from .watershed import watershed_from_affinities
 
 
 waterz_merge_function = {
