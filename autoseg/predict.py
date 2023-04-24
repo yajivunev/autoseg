@@ -3,6 +3,7 @@ import sys
 import gunpowder as gp
 import numpy as np
 import daisy
+from funlib.persistence import prepare_ds
 
 
 def predict(
@@ -113,7 +114,7 @@ def predict(
 
     # prepare output zarr datasets
     if write=="all" or write=="lsds":
-        daisy.prepare_ds(
+        prepare_ds(
                 out_file,
                 lsds_out_ds,
                 daisy.Roi(
@@ -127,7 +128,7 @@ def predict(
                 num_channels=10)
     
     if write=="all" or write=="affs":
-        daisy.prepare_ds(
+        prepare_ds(
                 out_file,
                 affs_out_ds,
                 daisy.Roi(
