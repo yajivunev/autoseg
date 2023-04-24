@@ -95,7 +95,7 @@ def run(
     for threshold,segmentation in zip(thresholds,generator):
        
         if downsample > 1:
-            seg = rescale(segmentation.copy(), [1,downsampling[1],downsampling[1]], order=0)
+            seg = rescale(segmentation.copy(), [1, downsample, downsample], order=0)
         else:
             seg = segmentation.copy()
         
