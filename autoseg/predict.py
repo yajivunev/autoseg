@@ -69,7 +69,7 @@ def predict(
 
     # I/O shapes and sizes
     # TO-DO: get I/O shapes from model_path?
-    increase = gp.Coordinate([32, 8*16, 8*16])
+    increase = gp.Coordinate([16, 8*16, 8*16])
     input_shape = gp.Coordinate([24, 196, 196]) + increase
     output_shape = gp.Coordinate([8, 104, 104]) + increase
 
@@ -79,7 +79,7 @@ def predict(
     voxel_size = gp.Coordinate([50, 8, 8])
     input_size = input_shape * voxel_size
     output_size = output_shape * voxel_size
-    context = (input_size - output_size) / 2
+    context = (input_size - output_size) // 2
 
     # TO-DO: use model path to get gp.ArrayKeys and request specs
     lsds_out_ds = f"lsds_{iteration}"
@@ -165,7 +165,7 @@ def predict(
                     pred_lsds: lsds_out_ds,
                     pred_affs: affs_out_ds
                 },
-                output_filename=out_file)
+                store=out_file)
     
     elif write=="affs":
         write = gp.Squeeze([pred_affs])
@@ -174,7 +174,7 @@ def predict(
                 dataset_names={
                     pred_affs: affs_out_ds
                 },
-                output_filename=out_file)
+                store=out_file)
     
     elif write=="lsds":
         write += gp.Squeeze([pred_lsds])
@@ -183,7 +183,7 @@ def predict(
                 dataset_names={
                     pred_lsds: lsds_out_ds
                 },
-                output_filename=out_file)
+                store=out_file)
     
     else:
         write = gp.Squeeze([pred_lsds,pred_affs])
@@ -220,8 +220,8 @@ if __name__ == "__main__":
 
     raw_file = sys.argv[1]
     raw_dataset = "raw"
-    #roi = ((500,4000,4000),(1500,8000,8000))
-    roi = ((50, 4160, 5008),(260*50,763*8,1004*8))
+    roi = None#((500,4000,4000),(1500,8000,8000))
+    #roi = ((50, 4160, 5008),(260*50,763*8,1004*8))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[2]
     out_file = raw_file#"test.zarr"
