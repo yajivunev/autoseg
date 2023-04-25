@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import daisy
+from funlib.persistence import open_ds, prepare_ds
 import zarr
 
 from skimage.transform import rescale
@@ -40,8 +41,8 @@ def run(
         thresholds=thresholds):
 
     # load
-    pred = daisy.open_ds(pred_file,pred_dataset)
-    voxel_size = pred.voxel_size
+    pred = open_ds(pred_file,pred_dataset)
+    #voxel_size = pred.voxel_size
     
     if roi is not None:
         roi = daisy.Roi(pred.roi.offset+daisy.Coordinate(roi[0]),roi[1])
@@ -107,7 +108,7 @@ def run(
         print(f"Writing segmentation at {threshold} to {pred_file}")
         f["segmentation_{threshold}"] = seg
         f["segmentation_{threshold}"].attrs["offset"] = roi.get_offset()
-        f["segmentation_{threshold}"].attrs["resolution"] = voxel_size
+        f["segmentation_{threshold}"].attrs["resolution"] = [int(x/y) for x,y in zip(roi.get_shape(),seg.shape)]
         
     return roi
 
