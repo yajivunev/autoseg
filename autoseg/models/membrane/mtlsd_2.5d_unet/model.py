@@ -30,9 +30,9 @@ class MtlsdModel(torch.nn.Module):
         self.lsd_head = ConvPass(num_fmaps, output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
         self.aff_head = ConvPass(num_fmaps, output_shapes[1], [[1, 1, 1]], activation='Sigmoid')
 
-    def forward(self, input):
+    def forward(self, input_raw):
 
-        z = self.unet(input)
+        z = self.unet(input_raw)
 
         lsds = self.lsd_head(z[0])
         affs = self.aff_head(z[1])
