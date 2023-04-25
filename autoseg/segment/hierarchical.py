@@ -41,6 +41,7 @@ def run(
 
     # load
     pred = daisy.open_ds(pred_file,pred_dataset)
+    voxel_size = pred.voxel_size
     
     if roi is not None:
         roi = daisy.Roi(pred.roi.offset+daisy.Coordinate(roi[0]),roi[1])
@@ -84,7 +85,7 @@ def run(
         min_seed_distance=min_seed_distance)[0]
     
     # agglomerate
-    segs = {}
+    #segs = {}
 
     generator = waterz.agglomerate(
             pred,
@@ -92,6 +93,9 @@ def run(
             fragments=fragments.copy(),
             scoring_function=waterz_merge_function[merge_function])
 
+    # write
+    f = zarr.open(pred_file,"a")
+    
     for threshold,segmentation in zip(thresholds,generator):
        
         if downsample > 1:
@@ -99,9 +103,13 @@ def run(
         else:
             seg = segmentation.copy()
         
-        segs[threshold] = seg
-
-    return segs, roi
+        #segs[threshold] = seg
+        print(f"Writing segmentation at {threshold} to {pred_file}")
+        f["segmentation_{threshold}"] = seg
+        f["segmentation_{threshold}"].attrs["offset"] = roi.get_offset()
+        f["segmentation_{threshold}"].attrs["resolution"] = voxel_size
+        
+    return roi
 
 
 if __name__ == "__main__":
