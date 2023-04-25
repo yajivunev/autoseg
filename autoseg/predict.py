@@ -69,7 +69,7 @@ def predict(
 
     # I/O shapes and sizes
     # TO-DO: get I/O shapes from model_path?
-    increase = gp.Coordinate([16, 8*12, 8*12])
+    increase = gp.Coordinate([0, 8*12, 8*12])
     input_shape = gp.Coordinate([24, 196, 196]) + increase
     output_shape = gp.Coordinate([8, 104, 104]) + increase
 
@@ -79,7 +79,7 @@ def predict(
     voxel_size = gp.Coordinate([50, 8, 8])
     input_size = input_shape * voxel_size
     output_size = output_shape * voxel_size
-    context = (input_size - output_size) / 2
+    context = (input_size - output_size) // 2
 
     # get input datasets, output datasets, array keys from model
     in_keys = []
@@ -104,7 +104,8 @@ def predict(
         total_output_roi = gp.Roi(gp.Coordinate(roi[0]),gp.Coordinate(roi[1]))
         total_input_roi = total_output_roi.grow(context,context)
 
-    print(total_input_roi,total_output_roi)
+    print(f'Padded: {total_input_roi}')
+    print(f'Non-padded (from PyRecon): {total_output_roi}')
 
     # prepare output zarr datasets
     if out_ds_names != []:
@@ -151,7 +152,7 @@ def predict(
                 in_keys[i]: sources[i][1]
             },
             {
-                in_keys[i]: gp.ArraySpec(interpolatable=True,voxel_size=voxel_size)
+                in_keys[i]: gp.ArraySpec(interpolatable=True)
             }) +
             gp.Normalize(in_keys[i]) +
             gp.Pad(in_keys[i], None) +
