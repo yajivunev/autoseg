@@ -151,7 +151,7 @@ def predict(
                 in_keys[i]: sources[i][1]
             },
             {
-                in_keys[i]: gp.ArraySpec(interpolatable=True)
+                in_keys[i]: gp.ArraySpec(interpolatable=True,voxel_size=voxel_size)
             }) +
             gp.Normalize(in_keys[i]) +
             gp.Pad(in_keys[i], None) +
