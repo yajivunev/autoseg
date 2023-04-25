@@ -3,7 +3,7 @@ import sys
 import gunpowder as gp
 import numpy as np
 import daisy
-
+from funlib.persistence import open_ds, prepare_ds
 
 def predict(
         sources,
@@ -95,7 +95,7 @@ def predict(
 
     # get ROI
     if roi is None:
-        ds = daisy.open_ds(sources[0][0],sources[0][1])
+        ds = open_ds(sources[0][0],sources[0][1])
         total_output_roi = gp.Roi(gp.Coordinate(ds.roi.get_offset()),gp.Coordinate(ds.roi.get_shape()))
         total_input_roi = total_output_roi.grow(context,context)
 
@@ -108,7 +108,7 @@ def predict(
     # prepare output zarr datasets
     for out_ds_name,num_channels,_ in out_ds_names:
 
-        daisy.prepare_ds(
+        prepare_ds(
                 out_file,
                 out_ds_name,
                 daisy.Roi(
@@ -119,6 +119,7 @@ def predict(
                 np.uint8,
                 write_size=output_size,
                 compressor={'id': 'blosc'},
+                delete=True,
                 num_channels=num_channels)
 
     # add specs to scan_request
@@ -176,11 +177,11 @@ def predict(
     return_arrays = False
 
     if write is not None or write != False or write == []:
-        dataset_names = {k:v for v,_,k in out_ds_names}
+        dataset_names = {gp.ArrayKey(k):v for v,_,k in out_ds_names}
         print(dataset_names)
         pipeline += gp.ZarrWrite(
                 dataset_names=dataset_names,
-                output_filename=out_file)
+                store=out_file)
     else:
         return_arrays = True
 
@@ -205,18 +206,16 @@ def predict(
 
 if __name__ == "__main__":
 
-    sources = [(sys.argv[1],"raw")]
-    roi = ((500,4000,4000),(1500,8000,8000))
+    sources = [(sys.argv[1],"raw/s2")]
+    roi = None#((500,4000,4000),(1500,8000,8000))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[2]
     out_file = "test.zarr"
 
-    aa = predict(
+    predict(
         sources,
         roi,
         model_path,
         checkpoint_path,
         out_file,
-        write=False)#"affs")
-
-    print(aa)
+        write="affs")

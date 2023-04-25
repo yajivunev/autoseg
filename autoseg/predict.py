@@ -125,6 +125,7 @@ def predict(
                 np.uint8,
                 write_size=output_size,
                 compressor={'id': 'blosc'},
+                delete=True,
                 num_channels=10)
     
     if write=="all" or write=="affs":
@@ -139,6 +140,7 @@ def predict(
                 np.uint8,
                 write_size=output_size,
                 compressor={'id': 'blosc'},
+                delete=True,
                 num_channels=3)
 
     predict = gp.torch.Predict(
@@ -224,7 +226,7 @@ if __name__ == "__main__":
     #roi = ((50, 4160, 5008),(260*50,763*8,1004*8))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[2]
-    out_file = raw_file#"test.zarr"
+    out_file = "test.zarr"
 
     predict(
         raw_file,
