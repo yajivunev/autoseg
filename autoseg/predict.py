@@ -69,7 +69,7 @@ def predict(
 
     # I/O shapes and sizes
     # TO-DO: get I/O shapes from model_path?
-    increase = gp.Coordinate([32, 8*12, 8*12])
+    increase = gp.Coordinate([16, 8*12, 8*12])
     input_shape = gp.Coordinate([24, 196, 196]) + increase
     output_shape = gp.Coordinate([8, 104, 104]) + increase
 
