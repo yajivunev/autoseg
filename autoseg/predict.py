@@ -12,7 +12,8 @@ def predict(
         checkpoint_path,
         out_file,
         write="all",
-        increase=None):
+        increase=None,
+        downsample=False):
 
     """
     Do inference on raw_file/raw_dataset using trained model.
@@ -62,11 +63,26 @@ def predict(
             Number of voxels to add to each dimension of the model's input and output shapes.
             Default value is [0,] * number of dimensions.
 
+        downsample (``bool`` or ``int``, optional):
+
+            Downsampling factor to downsample volumes in XY before prediction.
+            Default is False. True will result in downsampling factor being 
+            automatically calulated by doing the following:
+
+                factor = int(
+                    round(
+                        model_default_voxel_size/given_source_voxel_size
+                        ))
+            
+            This may result in total_output_roi being slightly underscanned or
+            overscanned with respect to the true total output ROI.
+
     """
    
     # import model from model_path and make instance
     sys.path.append(os.path.dirname(model_path))
     from model import model, input_shape, output_shape
+    from model import voxel_size as default_voxel_size
     from model import inference_array_keys as keys
 
     model.eval()
@@ -76,11 +92,13 @@ def predict(
 
     # get input datasets, output datasets, array keys from model
     in_keys = []
+    fr_in_keys = [] # full-resolution
     out_keys = []
     out_ds_names = []
 
     for in_key in keys[0].keys():
         in_keys.append(gp.ArrayKey(in_key))
+        fr_in_keys.append(gp.ArrayKey(in_key + "_FR"))
 
     for out_key,num_channels in keys[1].items():
         out_keys.append(gp.ArrayKey(out_key))
@@ -96,10 +114,21 @@ def predict(
     input_shape = gp.Coordinate(input_shape) + increase
     output_shape = gp.Coordinate(output_shape) + increase
 
-    # nm
-    # TO-DO: ask for voxel_size; 
-    # if raw's voxel_size <= given voxel_size, Downsample. else Error.
-    voxel_size = gp.Coordinate([50, 8, 8])
+    voxel_size = open_ds(sources[0][0],sources[0][1]).voxel_size
+    default_voxel_size = gp.Coordinate(default_voxel_size)
+
+    # XY downsample factor
+    if downsample==True:
+        downsample = int(round(default_voxel_size[-1]/voxel_size[-1]))
+    elif type(downsample) == int:
+        pass
+    else:
+        downsample = 1
+
+    downsample_factors = (1,) * (len(input_shape) - 2) + (downsample,downsample)
+    voxel_size = voxel_size * gp.Coordinate(downsample_factors) if downsample > 1 else voxel_size
+    
+    # world units (nm)
     input_size = input_shape * voxel_size
     output_size = output_shape * voxel_size
     context = (input_size - output_size) // 2
@@ -162,13 +191,14 @@ def predict(
             gp.ZarrSource(
                 sources[i][0],
             {
-                in_keys[i]: sources[i][1]
+                fr_in_keys[i]: sources[i][1]
             },
             {
-                in_keys[i]: gp.ArraySpec(interpolatable=True)
+                fr_in_keys[i]: gp.ArraySpec(interpolatable=True)
             }) +
-            gp.Normalize(in_keys[i]) +
-            gp.Pad(in_keys[i], None) +
+            gp.Normalize(fr_in_keys[i]) +
+            gp.Pad(fr_in_keys[i], None) +
+            gp.DownSample(fr_in_keys[i],downsample_factors,in_keys[i]) +
             gp.IntensityScaleShift(in_keys[i], 2,-1) +
             gp.Unsqueeze([in_keys[i]]) + 
             extra_unsqueeze[i]
@@ -202,7 +232,7 @@ def predict(
 
     if write is not None or write != False or write == []:
         dataset_names = {gp.ArrayKey(k):v for v,_,k in out_ds_names}
-        print(f"Writing to {out_file}: {dataset_names}")
+        print(f"Writing to {out_file}: {dataset_names} with voxel_size={voxel_size}")
         pipeline += gp.ZarrWrite(
                 dataset_names=dataset_names,
                 store=out_file)
@@ -231,7 +261,7 @@ def predict(
 if __name__ == "__main__":
 
     sources = [(sys.argv[1],sys.argv[2])]
-    roi = ((500,4000,4000),(1000,4000,4000))
+    roi = None#((500,4000,4000),(1000,4000,4000))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
     checkpoint_path = sys.argv[3]
     out_file = "test.zarr"
@@ -243,5 +273,6 @@ if __name__ == "__main__":
         model_path,
         checkpoint_path,
         out_file,
-        write="all",
-        increase=increase)
+        write="affs",
+        increase=increase,
+        downsample=False)

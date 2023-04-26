@@ -125,3 +125,6 @@ training_array_keys = [
 # model input and output shapes in voxels
 input_shape = [20, 196, 196]
 output_shape = [4, 104, 104]
+
+# default voxel resolution (nm/px)
+voxel_size = [50,8,8]
