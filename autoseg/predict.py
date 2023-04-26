@@ -110,9 +110,6 @@ def predict(
         out_keys.append(gp.ArrayKey(out_key))
         if write=="all" or out_key.lower().split('_')[-1] in write: 
             out_ds_names.append((f"{out_key.lower()}_{iteration}{section}",num_channels,out_key))
-
-    print(out_ds_names)
-    print(keys)
     
     # I/O shapes and sizes
     if increase is not None:
