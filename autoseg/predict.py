@@ -11,7 +11,8 @@ def predict(
         model_path,
         checkpoint_path,
         out_file,
-        write="all"):
+        write="all",
+        increase=None):
 
     """
     Do inference on raw_file/raw_dataset using trained model.
@@ -55,31 +56,23 @@ def predict(
             "lsds" : Write only local shape descriptors, if your model outputs it.
             "mask" : Writes only mask, if your model outputs it.
             None : Writes nothing. Returns the output arrays in memory. 
+
+        increase (``list`` or ``tuple`` of ``ints``, optional):
+
+            Number of voxels to add to each dimension of the model's input and output shapes.
+            Default value is [0,] * number of dimensions.
+
     """
    
     # import model from model_path and make instance
     sys.path.append(os.path.dirname(model_path))
-    from model import model
+    from model import model, input_shape, output_shape
     from model import inference_array_keys as keys
 
     model.eval()
 
     # get checkpoint iteration
     iteration = checkpoint_path.split('_')[-1]
-
-    # I/O shapes and sizes
-    # TO-DO: get I/O shapes from model_path?
-    increase = gp.Coordinate([0, 8*12, 8*12])
-    input_shape = gp.Coordinate([24, 196, 196]) + increase
-    output_shape = gp.Coordinate([8, 104, 104]) + increase
-
-    # nm
-    # TO-DO: ask for voxel_size; 
-    # if raw's voxel_size <= given voxel_size, Downsample. else Error.
-    voxel_size = gp.Coordinate([50, 8, 8])
-    input_size = input_shape * voxel_size
-    output_size = output_shape * voxel_size
-    context = (input_size - output_size) // 2
 
     # get input datasets, output datasets, array keys from model
     in_keys = []
@@ -94,18 +87,38 @@ def predict(
         if write=="all" or out_key.lower().split('_')[-1] in write: 
             out_ds_names.append((f"{out_key.lower()}_{iteration}",num_channels,out_key))
 
+    # I/O shapes and sizes
+    if increase is not None:
+        increase = gp.Coordinate(increase)
+    else:
+        increase = gp.Coordinate([0,]*len(input_shape))
+
+    input_shape = gp.Coordinate(input_shape) + increase
+    output_shape = gp.Coordinate(output_shape) + increase
+
+    # nm
+    # TO-DO: ask for voxel_size; 
+    # if raw's voxel_size <= given voxel_size, Downsample. else Error.
+    voxel_size = gp.Coordinate([50, 8, 8])
+    input_size = input_shape * voxel_size
+    output_size = output_shape * voxel_size
+    context = (input_size - output_size) // 2
+
     # get ROI, grow input_roi by context
     if roi is None:
         ds = open_ds(sources[0][0],sources[0][1])
-        total_output_roi = gp.Roi(gp.Coordinate(ds.roi.get_offset()),gp.Coordinate(ds.roi.get_shape()))
+        total_output_roi = gp.Roi(
+                gp.Coordinate(ds.roi.get_offset()),
+                gp.Coordinate(ds.roi.get_shape()))
         total_input_roi = total_output_roi.grow(context,context)
 
     else:
         total_output_roi = gp.Roi(gp.Coordinate(roi[0]),gp.Coordinate(roi[1]))
         total_input_roi = total_output_roi.grow(context,context)
 
-    print(f'Padded: {total_input_roi}')
-    print(f'Non-padded (from PyRecon): {total_output_roi}')
+    for i in range(len(voxel_size)):
+        assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
+            "total output (write) ROI cannot be smaller than model's output shape" 
 
     # prepare output zarr datasets
     if out_ds_names != []:
@@ -217,12 +230,12 @@ def predict(
 
 if __name__ == "__main__":
 
-    sources = [(sys.argv[1],"raw")]
-    roi = None#((500,4000,4000),(1500,8000,8000))
+    sources = [(sys.argv[1],sys.argv[2])]
+    roi = ((500,4000,4000),(1000,4000,4000))
     model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
-    checkpoint_path = sys.argv[2]
-    out_:w
-    file = "test.zarr"
+    checkpoint_path = sys.argv[3]
+    out_file = "test.zarr"
+    increase = [8,8*10,8*10]
 
     predict(
         sources,
@@ -230,4 +243,5 @@ if __name__ == "__main__":
         model_path,
         checkpoint_path,
         out_file,
-        write="all")
+        write="all",
+        increase=increase)

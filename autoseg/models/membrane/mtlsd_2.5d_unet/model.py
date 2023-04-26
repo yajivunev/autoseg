@@ -2,6 +2,7 @@ import torch
 from unet import UNet, ConvPass
 
 
+# Torch model
 class MtlsdModel(torch.nn.Module):
 
     def __init__(
@@ -40,6 +41,7 @@ class MtlsdModel(torch.nn.Module):
         return lsds,affs
 
 
+# Torch loss
 class WeightedMSELoss(torch.nn.Module):
 
     def __init__(self):
@@ -74,7 +76,7 @@ class WeightedMSELoss(torch.nn.Module):
 
         return lsds_loss + affs_loss
 
-
+# Make instance of model
 model = MtlsdModel(
         in_channels=1,
         output_shapes=[10,3],
@@ -91,6 +93,7 @@ model = MtlsdModel(
             [[3, 3, 3], [3, 3, 3]]]
         )
 
+# Gunpowder array keys for prediction
 inference_array_keys = [
         {
             "RAW": 1
@@ -101,6 +104,7 @@ inference_array_keys = [
             }
         ]
 
+# Gunpowder array keys for training
 training_array_keys = [
         {
             "RAW": 1
@@ -117,3 +121,7 @@ training_array_keys = [
             "GT_AFFS_MASK": 3
             }
         ]
+
+# model input and output shapes in voxels
+input_shape = [20, 196, 196]
+output_shape = [4, 104, 104]
