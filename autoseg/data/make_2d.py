@@ -1,5 +1,6 @@
 import numpy as np
 import daisy
+from funlib.persistence import open_ds, prepare_ds
 import sys
 import os
 from multiprocessing import Pool
@@ -22,7 +23,7 @@ def write_section(args):
 
         print(f"at section {section_number}..")
 
-        new_ds = daisy.prepare_ds(
+        new_ds = prepare_ds(
                 output_zarr,
                 f"{dataset}/{section_number}",
                 write_roi,
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     for dataset in datasets:
 
-        ds = daisy.open_ds(input_zarr,dataset)
+        ds = open_ds(input_zarr,dataset)
 
         data = ds.to_ndarray()
 

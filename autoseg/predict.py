@@ -87,6 +87,12 @@ def predict(
 
     model.eval()
 
+    # get section number of source if 2D sources
+    if len(input_shape) == 2:
+        section = "/" + sources[0][1].split('/')[-1]
+    else:
+        section = ""
+
     # get checkpoint iteration
     iteration = checkpoint_path.split('_')[-1]
 
@@ -103,8 +109,11 @@ def predict(
     for out_key,num_channels in keys[1].items():
         out_keys.append(gp.ArrayKey(out_key))
         if write=="all" or out_key.lower().split('_')[-1] in write: 
-            out_ds_names.append((f"{out_key.lower()}_{iteration}",num_channels,out_key))
+            out_ds_names.append((f"{out_key.lower()}_{iteration}{section}",num_channels,out_key))
 
+    print(out_ds_names)
+    print(keys)
+    
     # I/O shapes and sizes
     if increase is not None:
         increase = gp.Coordinate(increase)
@@ -262,10 +271,11 @@ if __name__ == "__main__":
 
     sources = [(sys.argv[1],sys.argv[2])]
     roi = None#((500,4000,4000),(1000,4000,4000))
-    model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
+    #model_path = "models/membrane/mtlsd_2.5d_unet/model.py"
+    model_path = "models/membrane/lsd_2d_unet/model.py"
     checkpoint_path = sys.argv[3]
     out_file = "test.zarr"
-    increase = [8,8*10,8*10]
+    increase = [8*10,8*10]
 
     predict(
         sources,
@@ -273,6 +283,6 @@ if __name__ == "__main__":
         model_path,
         checkpoint_path,
         out_file,
-        write="affs",
+        write="all",
         increase=increase,
         downsample=False)
