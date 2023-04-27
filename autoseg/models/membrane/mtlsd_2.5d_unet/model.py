@@ -17,6 +17,7 @@ class Model(torch.nn.Module):
 
         self.config_path = config_path
         self.load_config()
+        self.check_output_shape()
 
         self.unet = UNet(**self.params)
 
@@ -38,9 +39,18 @@ class Model(torch.nn.Module):
 
     def check_output_shape(self):
 
-        
+        input_shape = [1,1] + self.input_shape
 
-        out_shape = self.forward(torch.rand(*(input_shape))).data.shape
+        try:
+            out_shape = self.output_shape
+        except:
+            print("Computing output shape for first time for input_shape...")
+            self.output_shape = self.forward(torch.rand(*(input_shape))).data.shape[2:]
+
+            with open(self.config_path,"r+") as f: 
+                config = json.load(f)
+
+                config["model"]["output_shape"]  = self.output_shape
 
     def return_optimizer(self):
         return getattr(torch.optim,self.optimizer["name"])
