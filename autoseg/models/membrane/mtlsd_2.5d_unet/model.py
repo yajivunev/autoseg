@@ -1,35 +1,37 @@
+import json
 import torch
 from unet import UNet, ConvPass
 
 
-# Torch model
-class MtlsdModel(torch.nn.Module):
+# 3D UNet
+class Model(torch.nn.Module):
 
     def __init__(
             self,
-            in_channels,
-            output_shapes,
-            fmap_inc_factor,
-            downsample_factors,
-            kernel_size_down,
-            kernel_size_up):
+            config_path="config.json"):
 
         super().__init__()
 
-        num_fmaps = sum(output_shapes)
+        self.config_path = config_path
+        self.load_config()
 
-        self.unet = UNet(
-                in_channels=in_channels,
-                num_fmaps=num_fmaps,
-                fmap_inc_factor=fmap_inc_factor,
-                downsample_factors=downsample_factors,
-                kernel_size_down=kernel_size_down,
-                kernel_size_up=kernel_size_up,
-                constant_upsample=True,
-                num_heads=2)
+        self.unet = UNet(**self.params)
 
-        self.lsd_head = ConvPass(num_fmaps, output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
-        self.aff_head = ConvPass(num_fmaps, output_shapes[1], [[1, 1, 1]], activation='Sigmoid')
+        self.lsd_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
+        self.aff_head = ConvPass(self.unet.out_channels, self.output_shapes[1], [[1, 1, 1]], activation='Sigmoid')
+
+    def load_config(self):
+
+        with open(self.config_path,"r") as f: 
+            config = json.load(f)
+
+        for k,v in config["model"].items():
+            if type(v) == str:
+                value = f'"{v}"'
+            else:
+                value = str(v)
+
+            exec(f'self.{k} = {value}')
 
     def forward(self, input_raw):
 
@@ -41,11 +43,11 @@ class MtlsdModel(torch.nn.Module):
         return lsds,affs
 
 
-# Torch loss
-class WeightedMSELoss(torch.nn.Module):
+# Weighted MSE Loss
+class Loss(torch.nn.Module):
 
     def __init__(self):
-        super(WeightedMSELoss, self).__init__()
+        super(Loss, self).__init__()
 
     def _calc_loss(self, pred, target, weights):
 
@@ -75,56 +77,3 @@ class WeightedMSELoss(torch.nn.Module):
         affs_loss = self._calc_loss(affs_prediction, affs_target, affs_weights)
 
         return lsds_loss + affs_loss
-
-# Make instance of model
-model = MtlsdModel(
-        in_channels=1,
-        output_shapes=[10,3],
-        fmap_inc_factor=5,
-        downsample_factors=[[1,2,2],[1,2,2],[1,2,2]],
-        kernel_size_down=[
-            [[3, 3, 3], [3, 3, 3]],
-            [[3, 3, 3], [3, 3, 3]],
-            [[1, 3, 3], [1, 3, 3]],
-            [[1, 3, 3], [1, 3, 3]]],
-        kernel_size_up=[
-            [[1, 3, 3], [1, 3, 3]],
-            [[3, 3, 3], [3, 3, 3]],
-            [[3, 3, 3], [3, 3, 3]]]
-        )
-
-# Gunpowder array keys for prediction
-inference_array_keys = [
-        {
-            "RAW": 1
-            },
-        {
-            "PRED_LSDS": 10,
-            "PRED_AFFS": 3
-            }
-        ]
-
-# Gunpowder array keys for training
-training_array_keys = [
-        {
-            "RAW": 1
-            },
-        {
-            "LABELS": 1,
-            "UNLABELLED": 1,
-            "PRED_LSDS": 10,
-            "GT_LSDS": 10,
-            "LSDS_WEIGHTS": 10,
-            "PRED_AFFS": 3,
-            "GT_AFFS": 3,
-            "AFFS_WEIGHTS": 3,
-            "GT_AFFS_MASK": 3
-            }
-        ]
-
-# model input and output shapes in voxels
-input_shape = [20, 196, 196]
-output_shape = [4, 104, 104]
-
-# default voxel resolution (nm/px)
-voxel_size = [50,8,8]

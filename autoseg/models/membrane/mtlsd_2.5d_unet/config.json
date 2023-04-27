@@ -1,0 +1,64 @@
+{
+	"model":{
+
+		"name": "mtlsd_2.5d_unet",
+		"params": {
+			"in_channels": 1,
+			"num_fmaps": 13,
+			"fmap_inc_factor": 5,
+			"downsample_factors": [[1, 2, 2], [1, 2, 2], [1, 2, 2]],
+			"kernel_size_down": [
+				[[3, 3, 3], [3, 3, 3]], 
+				[[3, 3, 3], [3, 3, 3]], 
+				[[1, 3, 3], [1, 3, 3]],
+				[[1, 3, 3], [1, 3, 3]]
+			],
+			"kernel_size_up": [
+				[[1, 3, 3], [1, 3, 3]],
+				[[3, 3, 3], [3, 3, 3]], 
+				[[3, 3, 3], [3, 3, 3]]
+			],
+			"activation": "ReLU",
+			"num_fmaps_out": null,
+			"num_heads": 2,
+			"constant_upsample": true,
+			"padding": "valid"
+		},
+		"output_shapes": [10,3],
+		"input_shape": [20, 196, 196],
+		"output_shape": [4, 104, 104],
+		"default_voxel_size": [50, 8, 8]
+	},
+	"train":{
+		"keys":{
+			"input": {
+				"RAW": 1
+			},
+			"output": {
+				"LABELS": 1,
+				"UNLABELLED": 1,
+				"PRED_LSDS": 10,
+				"GT_LSDS": 10,
+				"LSDS_WEIGHTS": 10,
+				"PRED_AFFS": 3,
+				"GT_AFFS": 3,
+				"AFFS_WEIGHTS": 3,
+				"GT_AFFS_MASK": 3
+			    }
+		}
+	},
+	"predict":{
+		"keys":{
+			"input": {
+				"RAW": 1
+			},
+			"output": {
+			    	"PRED_LSDS": 10,
+			    	"PRED_AFFS": 3
+			}
+		}
+	},
+	"segment":{
+		"method": "hierarchical"
+	}
+}

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import gunpowder as gp
 import numpy as np
 import daisy
@@ -7,10 +8,11 @@ from funlib.persistence import open_ds, prepare_ds
 
 def predict(
         sources,
-        roi,
-        model_path,
-        checkpoint_path,
         out_file,
+        checkpoint_path,
+        model_path,
+        config_path=None,
+        roi=None,
         write="all",
         increase=None,
         downsample=False):
@@ -28,25 +30,30 @@ def predict(
                 (source2_container_path, source2_dataset),
                 ...]
 
-        roi (``tuple`` of two ``tuples`` of three ``ints``):
+        out_file (``string``):
 
-            Region of intereset of the source_dataset to use for
-            inference in world units (not voxels!) 
-
-            roi = ((offset_z, offset_y, offset_x), (size_z, size_y, size_x))
-
-        model_path (``string``):
-
-            Path to "model.py" which contains the Torch model instance used
-            for inference.
+            Path to output zarr container to write inference outputs.
 
         checkpoint_path (``string``):
 
             Path to model checkpoint. 
 
-        out_file (``string``):
+        model_path (``string``):
 
-            Path to output zarr container.
+            Path to "model.py" which contains the Torch model class used
+            for inference.
+        
+        config_path (``string``, optional):
+
+            Path to "config.json" which contains the paramters for the model
+            construction, training, inference and post-processing.
+
+        roi (``tuple`` of two ``tuples`` of three ``ints``, optional):
+
+            Region of intereset of the source_dataset to use for
+            inference in world units (not voxels!) 
+
+            roi = ((offset_z, offset_y, offset_x), (size_z, size_y, size_x))
 
         write (``string``, optional):
 
@@ -79,12 +86,26 @@ def predict(
 
     """
    
-    # import model from model_path and make instance
+    # import model from model_path
     sys.path.append(os.path.dirname(model_path))
-    from model import model, input_shape, output_shape
-    from model import voxel_size as default_voxel_size
-    from model import inference_array_keys as keys
+    from model import Model
 
+    # load config
+    if config_path is None:
+        config_path = os.path.join(os.path.dirname(model_path),"config.json")
+    
+    with open(config_path,"r") as f:
+        config = json.load(f)
+
+        # TO-DO: lazy. make prettier
+        keys = config["predict"]["keys"]
+        output_shapes = config["model"]["output_shapes"] 
+        input_shape = config["model"]["input_shape"] 
+        output_shape = config["model"]["output_shape"] 
+        input_shape = config["model"]["input_shape"] 
+        default_voxel_size = config["model"]["default_voxel_size"] 
+    
+    model = Model(config_path)
     model.eval()
 
     # get section number of source if 2D sources
@@ -102,11 +123,11 @@ def predict(
     out_keys = []
     out_ds_names = []
 
-    for in_key in keys[0].keys():
+    for in_key in keys["input"].keys():
         in_keys.append(gp.ArrayKey(in_key))
         fr_in_keys.append(gp.ArrayKey(in_key + "_FR"))
 
-    for out_key,num_channels in keys[1].items():
+    for out_key,num_channels in keys["output"].items():
         out_keys.append(gp.ArrayKey(out_key))
         if write=="all" or out_key.lower().split('_')[-1] in write: 
             out_ds_names.append((f"{out_key.lower()}_{iteration}{section}",num_channels,out_key))
@@ -187,7 +208,7 @@ def predict(
     
     # extra unsqueeze for single-channel image arrays
     extra_unsqueeze = [gp.Unsqueeze([in_key]) 
-            if keys[0][str(in_key)] == 1 
+            if keys["input"][str(in_key)] == 1 
             else gp.Unsqueeze([in_key])+gp.Squeeze([in_key]) 
             for in_key in in_keys
             ]
@@ -272,14 +293,16 @@ if __name__ == "__main__":
     model_path = "models/membrane/lsd_2d_unet/model.py"
     checkpoint_path = sys.argv[3]
     out_file = "test.zarr"
+    #increase = [8,8*10,8*10]
     increase = [8*10,8*10]
 
     predict(
         sources,
-        roi,
-        model_path,
-        checkpoint_path,
         out_file,
+        checkpoint_path,
+        model_path,
+        config_path=None,
+        roi=roi,
         write="all",
         increase=increase,
         downsample=False)

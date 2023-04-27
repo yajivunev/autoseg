@@ -269,8 +269,6 @@ class UNet(nn.Module):
             kernel_size_down=None,
             kernel_size_up=None,
             activation='ReLU',
-            fov=(1, 1, 1),
-            voxel_size=(1, 1, 1),
             num_fmaps_out=None,
             num_heads=1,
             constant_upsample=False,
@@ -345,14 +343,6 @@ class UNet(nn.Module):
                 Which activation to use after a convolution. Accepts the name
                 of any tensorflow activation function (e.g., ``ReLU`` for
                 ``nn.ReLU``).
-
-            fov (optional):
-
-                Initial field of view in physical units
-
-            voxel_size (optional):
-
-                Size of a voxel in the input data, in physical units
 
             num_heads (optional):
 

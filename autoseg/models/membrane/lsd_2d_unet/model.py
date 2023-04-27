@@ -1,34 +1,36 @@
+import json
 import torch
 from unet import UNet, ConvPass
 
 
-# Torch model
-class LsdModel(torch.nn.Module):
+# 2D UNet
+class Model(torch.nn.Module):
 
     def __init__(
             self,
-            in_channels,
-            output_shapes,
-            fmap_inc_factor,
-            downsample_factors,
-            kernel_size_down,
-            kernel_size_up):
+            config_path="config.json"):
 
         super().__init__()
 
-        num_fmaps = sum(output_shapes)
-        
-        self.unet = UNet(
-                in_channels=in_channels,
-                num_fmaps=num_fmaps,
-                fmap_inc_factor=fmap_inc_factor,
-                downsample_factors=downsample_factors,
-                kernel_size_down=kernel_size_down,
-                kernel_size_up=kernel_size_up,
-                constant_upsample=True,
-                num_heads=1)
+        self.config_path = config_path
+        self.load_config()
 
-        self.lsd_head = ConvPass(num_fmaps, output_shapes[0], [[1, 1]], activation='Sigmoid')
+        self.unet = UNet(**self.params)
+        
+        self.lsd_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1]], activation='Sigmoid')
+
+    def load_config(self):
+
+        with open(self.config_path,"r") as f: 
+            config = json.load(f)
+
+        for k,v in config["model"].items():
+            if type(v) == str:
+                value = f'"{v}"'
+            else:
+                value = str(v)
+
+            exec(f'self.{k} = {value}')
 
     def forward(self, input_raw):
 
@@ -39,10 +41,10 @@ class LsdModel(torch.nn.Module):
 
 
 # Torch loss
-class WeightedMSELoss(torch.nn.Module):
+class Loss(torch.nn.Module):
 
     def __init__(self):
-        super(WeightedMSELoss, self).__init__()
+        super(Loss, self).__init__()
 
     def _calc_loss(self, pred, target, weights):
 
@@ -68,52 +70,3 @@ class WeightedMSELoss(torch.nn.Module):
         loss = self._calc_loss(lsds_prediction, lsds_target, lsds_weights)
 
         return loss
-
-
-# Make instance of model
-model = LsdModel(
-        in_channels=1,
-        output_shapes=[6],
-        fmap_inc_factor=5,
-        downsample_factors=[[2,2],[2,2],[2,2]],
-        kernel_size_down=[
-            [[3, 3], [3, 3]],
-            [[3, 3], [3, 3]],
-            [[3, 3], [3, 3]],
-            [[3, 3], [3, 3]]],
-        kernel_size_up=[
-            [[3, 3], [3, 3]],
-            [[3, 3], [3, 3]],
-            [[3, 3], [3, 3]]],
-        )
-
-# Gunpowder array keys for prediction
-inference_array_keys = [
-        {
-            "RAW": 1
-            },
-        {
-            "PRED_LSDS": 6
-            }
-        ]
-
-# Gunpowder array keys for training
-training_array_keys = [
-        {
-            "RAW": 1
-            },
-        {
-            "LABELS": 1,
-            "UNLABELLED": 1,
-            "PRED_LSDS": 6,
-            "GT_LSDS": 6,
-            "LSDS_WEIGHTS": 6,
-            }
-        ]
-
-# model input and output shapes in voxels
-input_shape = [196, 196]
-output_shape = [104, 104]
-
-# default voxel resolution (nm/px)
-voxel_size = [8,8]
