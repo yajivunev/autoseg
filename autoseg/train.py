@@ -156,10 +156,10 @@ def train(
 if __name__ == "__main__":
 
     iterations = 10001
-    save_every = 500
+    save_every = 1000
     sources = [{
                     "raw": ("/home/vijay/science/models/membrane_mtlsd_Rat34/dsnyj_crop.zarr","raw"),
-                    "labels": ("test.zarr","seg"),
+                    "labels": ("test.zarr","seg_0.55_filtered_filtered"),
                     "unlabelled": ("test.zarr","unlabelled")
                 }]
     model_path = "/home/vijay/science/autoseg/autoseg/models/membrane/mtlsd_2.5d_unet/model.py"

@@ -36,6 +36,12 @@ class Model(torch.nn.Module):
 
             exec(f'self.{k} = {value}')
 
+    def check_output_shape(self):
+
+        
+
+        out_shape = self.forward(torch.rand(*(input_shape))).data.shape
+
     def return_optimizer(self):
         return getattr(torch.optim,self.optimizer["name"])
 
