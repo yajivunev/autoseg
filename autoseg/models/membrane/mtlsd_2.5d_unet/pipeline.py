@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import json
@@ -6,9 +7,7 @@ import gunpowder as gp
 from funlib.persistence import open_ds, prepare_ds
 from lsd.train.gp import AddLocalShapeDescriptor
 
-# TO-DO: fix imports
-sys.path.append("/home/vijay/science/autoseg/autoseg")
-from utils import *
+from ....utils import SmoothArray, RandomNoiseAugment
 
 
 class Pipeline():
