@@ -15,7 +15,6 @@ def train(
         model_path,
         config_path=None,
         pipeline_path=None,
-        checkpoint_path=None,
         downsample=False,
         min_masked=0.5,
         probabilities=None,

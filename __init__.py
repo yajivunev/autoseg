@@ -2,6 +2,8 @@ from .autoseg.train import train
 from .autoseg.predict import predict
 from .autoseg.segment import hierarchical
 
+from .autoseg.data.make_unlabelled_mask import make_mask
+
 import os
 
 models_dir = os.path.join(

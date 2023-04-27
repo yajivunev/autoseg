@@ -229,7 +229,7 @@ class Pipeline():
         for out_key in out_keys:
             request[out_key] = total_output_roi
 
-        return pipeline, request, total_output_roi
+        return pipeline, request, [item[0] for item in out_ds_names]
     
     def _make_train_augmentation_pipeline(self, raw, source):
 
