@@ -55,28 +55,6 @@ class Pipeline():
 
                 exec(f'self.{k} = {value}')
 
-
-    def _make_train_augmentation_pipeline(self, raw, source):
-
-        augs = self.augmentations
-
-        if 'elastic' in augs.keys():
-            source = source + gp.ElasticAugment(rotation_interval=[0, math.pi/2], **augs["elastic"])
-
-        if 'simple' in augs.keys():
-            source = source + gp.SimpleAugment(**augs["simple"])
-
-        if 'noise' in augs.keys():
-            source = source + RandomNoiseAugment(raw)
-
-        if 'intensity' in augs.keys():
-            source = source + gp.IntensityAugment(raw, **augs["intensity"])
-
-        if 'blur' in augs.keys():
-            source = source + SmoothArray(raw, **augs["blur"])
-        
-        return source
-
     def get_predict_pipeline(
             self,
             model,
@@ -166,10 +144,6 @@ class Pipeline():
                 prepare_ds(
                     out_file,
                     out_ds_name,
-#                    daisy.Roi(
-#                        total_output_roi.get_offset(),
-#                        total_output_roi.get_shape()
-#                    ),
                     total_output_roi,
                     voxel_size,
                     np.uint8,
@@ -257,6 +231,28 @@ class Pipeline():
             request[out_key] = total_output_roi
 
         return pipeline, request, total_output_roi
+    
+    def _make_train_augmentation_pipeline(self, raw, source):
+
+        augs = self.augmentations
+
+        if 'elastic' in augs.keys():
+            source = source + gp.ElasticAugment(rotation_interval=[0, math.pi/2], **augs["elastic"])
+
+        if 'simple' in augs.keys():
+            source = source + gp.SimpleAugment(**augs["simple"])
+
+        if 'noise' in augs.keys():
+            source = source + RandomNoiseAugment(raw)
+
+        if 'intensity' in augs.keys():
+            source = source + gp.IntensityAugment(raw, **augs["intensity"])
+
+        if 'blur' in augs.keys():
+            source = source + SmoothArray(raw, **augs["blur"])
+        
+        return source
+
 
     def get_train_pipeline(
             self,
@@ -390,16 +386,22 @@ class Pipeline():
         # add learning targets
         for node, params in self.nodes.items():
 
-            if "LocalShapeDescriptor" in node:
+            if "add_lsds" in node:
                 pipeline += AddLocalShapeDescriptor( 
                     labels,
                     gt_lsds,
                     unlabelled=unlabelled,
                     lsds_mask=lsds_weights,
-                    sigma=params["sigma"],
-                    downsample=1)
+                    downsample=1,
+                    **params)
+
+            if "grow_boundary" in node:
+                pipeline += gp.GrowBoundary(
+                    labels,
+                    mask=unlabelled,
+                    **params)
     
-            if "AddAffinities" in node:
+            if "add_affs" in node:
                 pipeline += gp.AddAffinities(
                     affinity_neighborhood=params["neighborhood"],
                     labels=labels,
@@ -407,7 +409,7 @@ class Pipeline():
                     unlabelled=unlabelled,
                     affinities_mask=gt_affs_mask)
             
-            if "BalanceLabels" in node:
+            if "balance_labels" in node:
                 pipeline += gp.BalanceLabels(
                     gt_affs,
                     affs_weights,

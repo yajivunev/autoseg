@@ -58,15 +58,16 @@
 			}
 		},
 		"nodes":{
-			"AddLocalShapeDescriptors": {"sigma": 80},
-			"AddAffinities": {
+			"add_lsds": {"sigma": 80},
+			"grow_boundary": {"steps": 1, "only_xy": true},
+			"add_affs": {
 				"neighborhood" : [
 					[-1, 0, 0],
 					[0, -1, 0],
 					[0, 0, -1]
 				]
 			},
-			"BalanceLabels": {}
+			"balance_labels": {}
 		}
 	},
 	"predict":{
