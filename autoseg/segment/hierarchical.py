@@ -7,7 +7,7 @@ import zarr
 from skimage.transform import rescale
 import waterz
 
-from .watershed import watershed_from_affinities
+from watershed import watershed_from_affinities
 
 
 waterz_merge_function = {
@@ -86,8 +86,6 @@ def run(
         min_seed_distance=min_seed_distance)[0]
     
     # agglomerate
-    #segs = {}
-
     generator = waterz.agglomerate(
             pred,
             thresholds=thresholds,
@@ -104,11 +102,10 @@ def run(
         else:
             seg = segmentation.copy()
         
-        #segs[threshold] = seg
         print(f"Writing segmentation at {threshold} to {pred_file}")
-        f["segmentation_{threshold}"] = seg
-        f["segmentation_{threshold}"].attrs["offset"] = roi.get_offset()
-        f["segmentation_{threshold}"].attrs["resolution"] = [int(x/y) for x,y in zip(roi.get_shape(),seg.shape)]
+        f[f"seg_{threshold}"] = seg
+        f[f"seg_{threshold}"].attrs["offset"] = roi.get_offset()
+        f[f"seg_{threshold}"].attrs["resolution"] = [int(x/y) for x,y in zip(roi.get_shape(),seg.shape)]
         
     return roi
 
@@ -117,15 +114,9 @@ if __name__ == "__main__":
 
     pred_file = sys.argv[1]
     pred_dataset = sys.argv[2]
-    roi = ((22*50, 645*8, 748*8),((260-44)*50,(763-200)*8,(1004-200)*8))
+    roi = None
 
-    segs, roi = run(
+    roi = run(
         pred_file,
         pred_dataset,
         thresholds=[0.5])
-
-    # write to pred_file
-    f = zarr.open(pred_file,"a")
-    f["seg"] = segs[0.5]
-    f["seg"].attrs["offset"] = roi.get_begin()
-    f["seg"].attrs["resolution"] = [int(x/y) for x,y in zip(roi.get_shape(),segs[0.5].shape)]

@@ -3,6 +3,9 @@ import torch
 from unet import UNet, ConvPass
 
 
+torch.backends.cudnn.benchmark = True
+
+
 # 3D UNet
 class Model(torch.nn.Module):
 
@@ -32,6 +35,12 @@ class Model(torch.nn.Module):
                 value = str(v)
 
             exec(f'self.{k} = {value}')
+
+    def return_optimizer(self):
+        return getattr(torch.optim,self.optimizer["name"])
+
+    def return_loss(self):
+        return Loss()
 
     def forward(self, input_raw):
 

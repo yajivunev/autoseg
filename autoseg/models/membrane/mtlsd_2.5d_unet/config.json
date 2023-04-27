@@ -24,27 +24,49 @@
 			"constant_upsample": true,
 			"padding": "valid"
 		},
+		"optimizer": {
+			"name": "Adam",
+			"params": {
+				"lr": 0.5e-4
+			}
+		},
 		"output_shapes": [10,3],
-		"input_shape": [20, 196, 196],
-		"output_shape": [4, 104, 104],
+		"input_shape": [24, 196, 196],
+		"output_shape": [8, 104, 104],
 		"default_voxel_size": [50, 8, 8]
 	},
 	"train":{
-		"keys":{
-			"input": {
-				"RAW": 1
+		"augmentations":{
+			"elastic" : {
+				"control_point_spacing": [2, 50, 50],
+				"jitter_sigma": [0, 2, 2],
+				"scale_interval": [0.6, 1.25],
+				"subsample": 4
 			},
-			"output": {
-				"LABELS": 1,
-				"UNLABELLED": 1,
-				"PRED_LSDS": 10,
-				"GT_LSDS": 10,
-				"LSDS_WEIGHTS": 10,
-				"PRED_AFFS": 3,
-				"GT_AFFS": 3,
-				"AFFS_WEIGHTS": 3,
-				"GT_AFFS_MASK": 3
-			    }
+			"simple": {
+				"transpose_only": [1,2]
+			},
+			"noise": {},
+			"intensity": {
+				"scale_min": 0.9,
+				"scale_max": 1.1,
+				"shift_min": -0.1,
+				"shift_max": 0.1
+			},
+			"blur": {
+				"blur_range": [0.0,1.0]
+			}
+		},
+		"nodes":{
+			"AddLocalShapeDescriptors": {"sigma": 80},
+			"AddAffinities": {
+				"neighborhood" : [
+					[-1, 0, 0],
+					[0, -1, 0],
+					[0, 0, -1]
+				]
+			},
+			"BalanceLabels": {}
 		}
 	},
 	"predict":{
