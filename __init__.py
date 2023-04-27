@@ -14,6 +14,7 @@ models_dir = os.path.join(
 
 model_paths = {}
 for model_group in os.listdir(models_dir):
+    model_paths[model_group] = {}
     for model in os.listdir(os.path.join(models_dir, model_group)):
         model_paths[model_group][model] = os.path.join(
             models_dir,
@@ -21,3 +22,4 @@ for model_group in os.listdir(models_dir):
             model,
             "model.py"
         )
+

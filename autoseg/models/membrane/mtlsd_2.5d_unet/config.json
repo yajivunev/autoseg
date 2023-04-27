@@ -31,8 +31,8 @@
 			}
 		},
 		"output_shapes": [10,3],
-		"input_shape": [24, 196, 196],
-		"output_shape": [8, 104, 104],
+		"input_shape": [20, 196, 196],
+		"output_shape": [4, 104, 104],
 		"default_voxel_size": [50, 8, 8]
 	},
 	"train":{
