@@ -5,7 +5,7 @@ modules and scripts for machine learning on EM
 ```
 conda create -n autoseg python=3.9
 conda activate autoseg
-conda install pytorch pytorch-cuda boost jupyter -c pytorch -c nvidia
+conda install pytorch pytorch-cuda=11.7 boost jupyter -c pytorch -c nvidia
 ```
 ```
 pip install cython zarr matplotlib mahotas
