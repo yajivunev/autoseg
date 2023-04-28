@@ -130,16 +130,16 @@ class Pipeline():
 
             ds = open_ds(sources[0][0],sources[0][1])
 
-            total_input_roi = gp.Roi(
+            total_output_roi = gp.Roi(
                     gp.Coordinate(ds.roi.get_offset()),
                     gp.Coordinate(ds.roi.get_shape()))
             
-            total_output_roi = total_input_roi.grow(-context, -context)
+            total_input_roi = total_output_roi.grow(context, context)
 
         else:
             
-            total_input_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
-            total_output_roi = total_input_roi.grow(-context, -context)
+            total_output_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
+            total_input_roi = total_output_roi.grow(context, context)
 
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
