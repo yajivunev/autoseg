@@ -1,7 +1,10 @@
+*.swp
 *.zarr
 snapshots
 log
+daisy_logs
 *_checkpoint_*
+out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
