@@ -347,7 +347,7 @@ class Pipeline():
                             gt_mask_fr: gp.ArraySpec(interpolatable=False)
                         }
                     ) +
-                    gp.Pad(labels_fr, context),
+                    gp.Pad(gt_mask_fr, context),
 
                     gp.ZarrSource(
                         source["labels_mask"][0],
