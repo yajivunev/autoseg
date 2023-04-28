@@ -132,6 +132,7 @@ def predict(
             increase,
             downsample,
             roi,
+            out_roi,
             write,
             out_file)
 
