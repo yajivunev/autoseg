@@ -11,6 +11,7 @@ def predict(
         config_path=None,
         pipeline_path=None,
         roi=None,
+        out_roi=None,
         write="all",
         increase=None,
         downsample=False,
@@ -59,6 +60,11 @@ def predict(
             inference in world units (not voxels!) 
 
             roi = ((offset_z, offset_y, offset_x), (size_z, size_y, size_x))
+            
+        out_roi (``string``, optional):
+                
+            total_output_roi is equal to the given source ROI when out_roi == "full". 
+            Else total_output_roi is shrunk by context of the networks I/O shapes.
 
         write (``string``, optional):
 
