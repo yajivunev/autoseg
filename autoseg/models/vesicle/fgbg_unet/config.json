@@ -30,7 +30,7 @@
 				"lr": 0.5e-4
 			}
 		},
-		"output_shapes": [10,3],
+		"output_shapes": [1],
 		"input_shape": [196, 196],
 		"output_shape": [104, 104],
 		"default_voxel_size": [2, 2]
