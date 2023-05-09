@@ -1,12 +1,12 @@
 {
 	"model":{
 
-		"name": "fgbg_unet",
+		"name": "affs_unet",
 		"params": {
 			"in_channels": 1,
-			"num_fmaps": 12,
+			"num_fmaps": 6,
 			"fmap_inc_factor": 5,
-			"downsample_factors": [[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+			"downsample_factors": [[1, 2, 2], [1, 2, 2], [2, 2, 2]],
 			"kernel_size_down": [
 				[[3, 3, 3], [3, 3, 3]], 
 				[[3, 3, 3], [3, 3, 3]], 
@@ -30,9 +30,9 @@
 				"lr": 0.5e-4
 			}
 		},
-		"output_shapes": [1],
-		"input_shape": [196, 196],
-		"output_shape": [104, 104],
+		"output_shapes": [3],
+		"input_shape": [40, 196, 196],
+		"output_shape": [8, 104, 104],
 		"default_voxel_size": [50, 2, 2]
 	},
 	"train":{
@@ -46,7 +46,6 @@
 			"simple": {
 				"transpose_only": [1,2]
 			},
-			"noise": {},
 			"intensity": {
 				"scale_min": 0.9,
 				"scale_max": 1.1,
@@ -55,6 +54,14 @@
 			}
 		},
 		"nodes":{
+			"add_affs": {
+				"neighborhood" : [
+					[-1, 0, 0],
+					[0, -1, 0],
+					[0, 0, -1]
+				]
+			},
+			"balance_labels": {}
 		}
 	},
 	"predict":{
@@ -63,7 +70,7 @@
 				"RAW": 1
 			},
 			"output": {
-			    	"PRED_MASK": 1
+			    	"PRED_AFFS": 3
 			}
 		}
 	},

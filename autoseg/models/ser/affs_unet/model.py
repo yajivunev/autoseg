@@ -17,11 +17,11 @@ class Model(torch.nn.Module):
 
         self.config_path = config_path
         self.load_config()
-        self.check_output_shape()
 
         self.unet = UNet(**self.params)
-
-        self.mask_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
+        self.aff_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
+        
+        self.check_output_shape()
 
     def load_config(self):
 
@@ -42,9 +42,9 @@ class Model(torch.nn.Module):
 
         try:
             out_shape = self.output_shape
-        except:
+        except AttributeError:
             print("Computing output shape for first time for input_shape...")
-            self.output_shape = self.forward(torch.rand(*(input_shape))).data.shape[2:]
+            self.output_shape = list(self.forward(torch.rand(*(input_shape))).data.shape[2:])
 
             with open(self.config_path,"r+") as f: 
                 config = json.load(f)
@@ -61,9 +61,9 @@ class Model(torch.nn.Module):
 
         z = self.unet(input_raw)
 
-        mask = self.mask_head(z)
+        affs = self.aff_head(z)
 
-        return mask
+        return affs
 
 
 # Weighted MSE Loss

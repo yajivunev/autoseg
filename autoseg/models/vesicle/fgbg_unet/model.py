@@ -17,11 +17,11 @@ class Model(torch.nn.Module):
 
         self.config_path = config_path
         self.load_config()
-        self.check_output_shape()
 
         self.unet = UNet(**self.params)
-
         self.mask_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1]], activation='Sigmoid')
+        
+        self.check_output_shape()
 
     def load_config(self):
 

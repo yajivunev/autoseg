@@ -5,7 +5,6 @@ import json
 import numpy as np
 import gunpowder as gp
 from funlib.persistence import open_ds, prepare_ds
-from lsd.train.gp import AddLocalShapeDescriptor
 
 script_dir = os.path.dirname(__file__)
 autoseg_dir = os.path.join(script_dir, '../../..')
@@ -13,7 +12,7 @@ autoseg_dir = os.path.join(script_dir, '../../..')
 print(autoseg_dir)
 
 sys.path.append(autoseg_dir)
-from utils import SmoothArray, RandomNoiseAugment, CreateMask
+from utils import SmoothArray, RandomNoiseAugment
 
 class Pipeline():
 
@@ -67,6 +66,7 @@ class Pipeline():
             increase,
             downsample,
             roi,
+            out_roi,
             write,
             out_file):
 
@@ -126,24 +126,42 @@ class Pipeline():
         context = (input_size - output_size) // 2
 
         # get ROI, grow input_roi by context
-        if roi is None:
+        if out_roi == "full":
+            if roi is None:
 
-            ds = open_ds(sources[0][0],sources[0][1])
+                ds = open_ds(sources[0][0],sources[0][1])
 
-            total_output_roi = gp.Roi(
-                    gp.Coordinate(ds.roi.get_offset()),
-                    gp.Coordinate(ds.roi.get_shape()))
-            
-            total_input_roi = total_output_roi.grow(context, context)
+                total_output_roi = gp.Roi(
+                        gp.Coordinate(ds.roi.get_offset()),
+                        gp.Coordinate(ds.roi.get_shape()))
 
+                total_input_roi = total_output_roi.grow(context, context)
+
+            else:
+
+                total_output_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
+                total_input_roi = total_output_roi.grow(context, context)
         else:
-            
-            total_output_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
-            total_input_roi = total_output_roi.grow(context, context)
+            if roi is None:
+
+                ds = open_ds(sources[0][0],sources[0][1])
+
+                total_input_roi = gp.Roi(
+                        gp.Coordinate(ds.roi.get_offset()),
+                        gp.Coordinate(ds.roi.get_shape()))
+
+                total_output_roi = total_input_roi.grow(-context, -context)
+
+            else:
+
+                total_input_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
+                total_output_roi = total_input_roi.grow(-context, -context)
+  
 
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
                 f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}" 
+ 
  
         # prepare output zarr datasets
         if out_ds_names != []:
@@ -289,9 +307,11 @@ class Pipeline():
         
         raw = gp.ArrayKey('RAW')
         labels = gp.ArrayKey('LABELS')
-        gt_mask = gp.ArrayKey('GT_MASK')
         labels_mask = gp.ArrayKey('LABELS_MASK')
-        pred_mask = gp.ArrayKey('PRED_MASK')
+        gt_affs = gp.ArrayKey('GT_AFFS')
+        pred_affs = gp.ArrayKey('PRED_AFFS')
+        affs_weights = gp.ArrayKey('AFFS_WEIGHTS')
+        gt_affs_mask = gp.ArrayKey('GT_AFFS_MASK')
         
         # I/O shapes and sizes
         input_shape = gp.Coordinate(self.input_shape)
@@ -321,9 +341,11 @@ class Pipeline():
         request = gp.BatchRequest()
         request.add(raw, input_size)
         request.add(labels, output_size)
-        request.add(gt_mask, output_size)
         request.add(labels_mask, output_size)
-        request.add(pred_mask, output_size)
+        request.add(gt_affs, output_size)
+        request.add(pred_affs, output_size)
+        request.add(affs_weights, output_size)
+        request.add(gt_affs_mask, output_size)
 
         # make sources 
         sources = tuple(
@@ -341,9 +363,9 @@ class Pipeline():
                     gp.Pad(raw_fr, None),
 
                     gp.ZarrSource(
-                        source["mask"][0],
+                        source["labels"][0],
                         {
-                            labels_fr: source["mask"][1]
+                            labels_fr: source["labels"][1]
                         },
                         {
                             labels_fr: gp.ArraySpec(interpolatable=False)
@@ -367,7 +389,8 @@ class Pipeline():
                 gp.RandomLocation(mask=labels_mask_fr, min_masked=min_masked) +
                 gp.DownSample(raw_fr, downsample_factors, raw) +
                 gp.DownSample(labels_fr, downsample_factors, labels) +
-                gp.DownSample(labels_mask_fr, downsample_factors, labels_mask)
+                gp.DownSample(labels_mask_fr, downsample_factors, labels_mask) +
+                gp.GrowBoundary(labels_mask, steps=7, only_xy=True, background=1)
                 for source in sources
             )
    
@@ -378,9 +401,24 @@ class Pipeline():
 
         # add augmentations
         pipeline = self._make_train_augmentation_pipeline(raw, pipeline)
+        
+        # add learning targets
+        for node, params in self.nodes.items():
 
-        # create mask
-        pipeline += CreateMask(labels,gt_mask)
+            if "add_affs" in node:
+                pipeline += gp.AddAffinities(
+                    affinity_neighborhood=params["neighborhood"],
+                    labels=labels,
+                    affinities=gt_affs,
+                    labels_mask=labels_mask,
+                    affinities_mask=gt_affs_mask)
+            
+            if "balance_labels" in node:
+                pipeline += gp.BalanceLabels(
+                    gt_affs,
+                    affs_weights,
+                    gt_affs_mask)
+
 
         # add remaining nodes
         pipeline += gp.IntensityScaleShift(raw, 2,-1)
@@ -399,27 +437,31 @@ class Pipeline():
                 'input_raw': raw
             },
             outputs={
-                0: pred_mask,
+                0: pred_affs,
             },
             loss_inputs={
-                0: pred_mask,
-                1: gt_mask,
-                2: labels_mask
+                0: pred_affs,
+                1: gt_affs,
+                2: affs_weights
             },
             save_every=save_every,
             log_dir=log_dir,
             checkpoint_basename=checkpoint_basename)
 
         pipeline += gp.IntensityScaleShift(raw, 0.5, 0.5)
-        pipeline += gp.Squeeze([raw,gt_mask,pred_mask,labels_mask])
+        pipeline += gp.Squeeze([raw,gt_affs,pred_affs,affs_weights])
 
         if snapshots_dir is not None:
             pipeline += gp.Snapshot(
                     dataset_names={
                         raw: 'raw',
-                        gt_mask: 'gt_mask',
-                        pred_mask: 'pred_mask',
-                        labels_mask: 'labels_mask'
+                        gt_affs: 'gt_affs',
+                        pred_affs: 'pred_affs',
+                        affs_weights: 'affs_weights'
+                        #labels_mask: 'labels_mask'
+                    },
+                    dataset_dtypes={
+                        gt_affs: np.float32
                     },
                     output_filename='batch_{iteration}.zarr',
                     output_dir=snapshots_dir,
