@@ -6,7 +6,7 @@ from unet import UNet, ConvPass
 torch.backends.cudnn.benchmark = True
 
 
-# 2D UNet
+# 3D UNet
 class Model(torch.nn.Module):
 
     def __init__(
@@ -21,7 +21,7 @@ class Model(torch.nn.Module):
 
         self.unet = UNet(**self.params)
 
-        self.mask_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1]], activation='Sigmoid')
+        self.mask_head = ConvPass(self.unet.out_channels, self.output_shapes[0], [[1, 1, 1]], activation='Sigmoid')
 
     def load_config(self):
 
