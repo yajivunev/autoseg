@@ -1,6 +1,6 @@
 import json
 import torch
-from funlib.learn.torch.models import UNet, ConvPass
+from unet import UNet, ConvPass
 
 torch.backends.cudnn.benchmark = True
 
