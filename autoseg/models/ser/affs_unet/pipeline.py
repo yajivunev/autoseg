@@ -7,12 +7,12 @@ import gunpowder as gp
 from funlib.persistence import open_ds, prepare_ds
 
 script_dir = os.path.dirname(__file__)
-autoseg_dir = os.path.join(script_dir, '../../..')
+autoseg_dir = os.path.join(script_dir, '../../../../../')
 
 print(autoseg_dir)
 
 sys.path.append(autoseg_dir)
-from utils import SmoothArray, RandomNoiseAugment
+from autoseg.utils import SmoothArray, RandomNoiseAugment
 
 class Pipeline():
 
@@ -389,8 +389,7 @@ class Pipeline():
                 gp.RandomLocation(mask=labels_mask_fr, min_masked=min_masked) +
                 gp.DownSample(raw_fr, downsample_factors, raw) +
                 gp.DownSample(labels_fr, downsample_factors, labels) +
-                gp.DownSample(labels_mask_fr, downsample_factors, labels_mask) +
-                gp.GrowBoundary(labels_mask, steps=7, only_xy=True, background=1)
+                gp.DownSample(labels_mask_fr, downsample_factors, labels_mask)
                 for source in sources
             )
    
