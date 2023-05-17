@@ -7,10 +7,10 @@ from .data.make_unlabelled_mask import make_mask
 
 import os
 
-models_dir = os.path.join(
+models_dir = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 
     "models"
-)
+))
 
 print("list models: ", os.listdir(models_dir))
 print("membrane models: ", os.listdir(os.path.join(models_dir,"membrane")))
