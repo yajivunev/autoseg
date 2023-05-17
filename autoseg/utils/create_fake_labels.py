@@ -28,7 +28,7 @@ class CreateLabels(gp.BatchFilter):
         shape = labels.shape
 
         # different numbers simulate more or less objects
-        num_points = random.randint(25,50*self.anisotropy)
+        num_points = random.randint(25,50)
 
         for n in range(num_points):
             z = random.randint(1, labels.shape[0] - 1)
