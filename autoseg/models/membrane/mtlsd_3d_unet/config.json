@@ -1,7 +1,7 @@
 {
 	"model":{
 
-		"name": "mtlsd_2.5d_unet",
+		"name": "mtlsd_3d_unet",
 		"params": {
 			"in_channels": 1,
 			"num_fmaps": 13,
