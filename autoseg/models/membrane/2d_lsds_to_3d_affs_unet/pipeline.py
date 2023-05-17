@@ -372,19 +372,18 @@ class Pipeline():
                 pipeline += CustomLSDs( 
                     zeros,
                     gt_lsds,
-                    unlabelled=unlabelled,
-                    lsds_mask=lsds_weights,
                     downsample=1,
+                    sigma=int(10*voxel_size[-1]),
                     **params)
             
             if 'noise' in node:
                 pipeline += RandomNoiseAugment(gt_lsds)
 
             if 'intensity' in node:
-                pipeline += gp.IntensityAugment(gt_lsds, **augs["intensity"])
+                pipeline += gp.IntensityAugment(gt_lsds, **params)
 
             if 'blur' in node:
-                pipeline += SmoothArray(gt_lsds, **augs["blur"])
+                pipeline += SmoothArray(gt_lsds, **params)
 
             if "grow_boundary" in node:
                 pipeline += gp.GrowBoundary(
