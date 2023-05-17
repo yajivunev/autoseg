@@ -1,6 +1,6 @@
 from .train import train
 from .predict import predict
-from . import segment
+from segment import *
 from . import utils
 
 from .data.make_unlabelled_mask import make_mask
