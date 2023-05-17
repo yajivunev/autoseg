@@ -13,9 +13,9 @@ models_dir = os.path.join(
 )
 
 model_paths = {}
-for model_group in [x for x in os.listdir(models_dir) if '__init__' not in x]:
+for model_group in [x for x in os.listdir(models_dir) if '__' not in x]:
     model_paths[model_group] = {}
-    for model in [x for x in os.listdir(os.path.join(models_dir, model_group)) if '__init__' not in x]:
+    for model in [x for x in os.listdir(os.path.join(models_dir, model_group)) if '__' not in x]:
         model_paths[model_group][model] = os.path.join(
             models_dir,
             model_group,
