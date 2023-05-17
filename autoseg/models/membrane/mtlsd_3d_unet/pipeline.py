@@ -114,9 +114,13 @@ class Pipeline():
             pass
         else:
             downsample = 1
-
+            
         downsample_factors = (1,) * (len(self.input_shape) - 2) + (downsample,downsample)
         voxel_size = voxel_size * gp.Coordinate(downsample_factors) if downsample > 1 else voxel_size
+
+        print(f'DOWNSAMPLE = {downsample}')
+        print(f'DOWNSAMPLE FACTORS = {downsample_factors}')
+        print(f'VOXEL SIZE = {voxel_size}')
         
         # world units (nm)
         input_size = input_shape * voxel_size
@@ -158,7 +162,15 @@ class Pipeline():
 
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
-                f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}" 
+                f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}"
+            
+        print(f"TOR: {total_output_roi} \nTIR: {total_input_roi}")
+
+        total_output_roi.snap_to_grid(voxel_size)
+        
+        print(f"TOR: {total_output_roi} \nTIR: {total_input_roi}")
+
+            
  
         # prepare output zarr datasets
         if out_ds_names != []:
