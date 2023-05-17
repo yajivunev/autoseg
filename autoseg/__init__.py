@@ -14,8 +14,10 @@ models_dir = os.path.join(
 
 model_paths = {}
 for model_group in [x for x in os.listdir(models_dir) if '__' not in x]:
+    print("model group: ",model_group)
     model_paths[model_group] = {}
     for model in [x for x in os.listdir(os.path.join(models_dir, model_group)) if '__' not in x]:
+        print("model name: ", model)
         model_paths[model_group][model] = os.path.join(
             models_dir,
             model_group,
