@@ -9,6 +9,7 @@ setup(
         author_email='vvenu@utexas.edu',
         packages=[
             'autoseg',
+            'autoseg.segment'
         ],
         install_requires=[
             "torch",
