@@ -357,7 +357,7 @@ class Pipeline():
         source += gp.Pad(zeros, None)
 
         # make pipeline
-        pipeline = sources
+        pipeline = source
 
         # create fake 3d labels
         pipeline += CreateLabels(zeros, anisotropy)
