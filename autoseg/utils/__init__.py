@@ -4,4 +4,4 @@ from .random_noise import RandomNoiseAugment
 from .create_mask import CreateMask
 from .zeros_source import ZerosSource
 from .create_fake_labels import CreateLabels
-from .custom_lsds import CustomLSD
+from .custom_lsds import CustomLSDs
