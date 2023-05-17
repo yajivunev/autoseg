@@ -12,6 +12,9 @@ models_dir = os.path.join(
     "models"
 )
 
+print("list models: ", os.listdir(models_dir))
+print("membrane models: ", os.listdir(os.path.join(models_dir,"membrane")))
+
 model_paths = {}
 for model_group in [x for x in os.listdir(models_dir) if ('__init__' not in x and '__pycache__' not in x)]:
     print("model group: ",model_group)
