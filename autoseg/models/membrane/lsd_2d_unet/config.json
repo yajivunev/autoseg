@@ -1,0 +1,75 @@
+{
+	"model":{
+		"name": "lsd_2d_unet",
+		"params": {
+			"in_channels": 1,
+			"num_fmaps": 6,
+			"fmap_inc_factor": 5,
+			"downsample_factors": [[2, 2], [2, 2], [2, 2]],
+			"kernel_size_down": [
+				[[3, 3], [3, 3]], 
+				[[3, 3], [3, 3]], 
+				[[3, 3], [3, 3]], 
+				[[3, 3], [3, 3]] 
+			],
+			"kernel_size_up": [
+				[[3, 3], [3, 3]], 
+				[[3, 3], [3, 3]], 
+				[[3, 3], [3, 3]] 
+			],
+			"activation": "ReLU",
+			"num_fmaps_out": null,
+			"num_heads": 1,
+			"constant_upsample": true,
+			"padding": "valid"
+		},
+		"optimizer": {
+			"name": "Adam",
+			"params": {
+				"lr": 0.5e-4
+			}
+		},
+		"output_shapes": [6],
+		"input_shape": [196, 196],
+		"output_shape": [104, 104],
+		"default_voxel_size": [8, 8]
+	},
+	"train":{
+		"augmentations":{
+			"elastic" : {
+				"control_point_spacing": [50, 50],
+				"jitter_sigma": [2, 2],
+				"scale_interval": [0.6, 1.25],
+				"subsample": 4
+			},
+			"simple": {
+			},
+			"noise": {},
+			"intensity": {
+				"scale_min": 0.9,
+				"scale_max": 1.1,
+				"shift_min": -0.1,
+				"shift_max": 0.1
+			},
+			"blur": {
+				"blur_range": [0.0,1.0]
+			}
+		},
+		"nodes":{
+			"add_lsds": {}
+		}
+	},
+	"predict":{
+		"keys":{
+			"input": {
+				"RAW": 1
+			},
+			"output": {
+                "PRED_LSDS": 6
+			}
+		}
+	},
+	"segment":{
+		"method": "hierarchical"
+	}
+}

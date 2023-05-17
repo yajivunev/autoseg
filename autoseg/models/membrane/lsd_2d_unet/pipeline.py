@@ -5,10 +5,12 @@ import json
 import numpy as np
 import gunpowder as gp
 from funlib.persistence import open_ds, prepare_ds
+from lsd.train.gp import AddLocalShapeDescriptor
 
 script_dir = os.path.dirname(__file__)
 
 from autoseg.utils import SmoothArray, RandomNoiseAugment
+
 
 class Pipeline():
 
@@ -121,7 +123,7 @@ class Pipeline():
         output_size = output_shape * voxel_size
         context = (input_size - output_size) // 2
 
-        # get ROI, grow input_roi by context
+        # get ROI, grow input_roi by context if full
         if out_roi == "full":
             if roi is None:
 
@@ -157,7 +159,6 @@ class Pipeline():
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
                 f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}" 
- 
  
         # prepare output zarr datasets
         if out_ds_names != []:
@@ -289,6 +290,8 @@ class Pipeline():
             log_dir,
             snapshots_dir):
 
+        batch_size = 5
+
         self.load_config("train")
         
         # model, loss, optimizer
@@ -299,16 +302,16 @@ class Pipeline():
         # array keys 
         raw_fr = gp.ArrayKey('RAW_FR')
         labels_fr = gp.ArrayKey('LABELS_FR')
-        labels_mask_fr = gp.ArrayKey('LABELS_MASK_FR')
+        unlabelled_fr = gp.ArrayKey('UNLABELLED_FR')
         
         raw = gp.ArrayKey('RAW')
         labels = gp.ArrayKey('LABELS')
-        labels_mask = gp.ArrayKey('LABELS_MASK')
-        gt_affs = gp.ArrayKey('GT_AFFS')
-        pred_affs = gp.ArrayKey('PRED_AFFS')
-        affs_weights = gp.ArrayKey('AFFS_WEIGHTS')
-        gt_affs_mask = gp.ArrayKey('GT_AFFS_MASK')
-        
+        unlabelled = gp.ArrayKey('UNLABELLED')
+
+        gt_lsds = gp.ArrayKey('GT_LSDS')
+        pred_lsds = gp.ArrayKey('PRED_LSDS')
+        lsds_weights = gp.ArrayKey('LSDS_WEIGHTS')
+
         # I/O shapes and sizes
         input_shape = gp.Coordinate(self.input_shape)
         output_shape = gp.Coordinate(self.output_shape)
@@ -337,11 +340,10 @@ class Pipeline():
         request = gp.BatchRequest()
         request.add(raw, input_size)
         request.add(labels, output_size)
-        request.add(labels_mask, output_size)
-        request.add(gt_affs, output_size)
-        request.add(pred_affs, output_size)
-        request.add(affs_weights, output_size)
-        request.add(gt_affs_mask, output_size)
+        request.add(unlabelled, output_size)
+        request.add(gt_lsds, output_size)
+        request.add(pred_lsds, output_size)
+        request.add(lsds_weights, output_size)
 
         # make sources 
         sources = tuple(
@@ -370,22 +372,22 @@ class Pipeline():
                     gp.Pad(labels_fr, context),
 
                     gp.ZarrSource(
-                        source["labels_mask"][0],
+                        source["unlabelled"][0],
                         {
-                            labels_mask_fr: source["labels_mask"][1]
+                            unlabelled_fr: source["unlabelled"][1]
                         },
                         {
-                            labels_mask_fr: gp.ArraySpec(interpolatable=False)
+                            unlabelled_fr: gp.ArraySpec(interpolatable=False)
                         }
                     ) +
-                    gp.Pad(labels_mask_fr, context)
+                    gp.Pad(unlabelled_fr, context)
                 ) +
 
                 gp.MergeProvider() + 
-                gp.RandomLocation(mask=labels_mask_fr, min_masked=min_masked) +
+                gp.RandomLocation(mask=unlabelled_fr, min_masked=min_masked) +
                 gp.DownSample(raw_fr, downsample_factors, raw) +
                 gp.DownSample(labels_fr, downsample_factors, labels) +
-                gp.DownSample(labels_mask_fr, downsample_factors, labels_mask)
+                gp.DownSample(unlabelled_fr, downsample_factors, unlabelled)
                 for source in sources
             )
    
@@ -396,30 +398,25 @@ class Pipeline():
 
         # add augmentations
         pipeline = self._make_train_augmentation_pipeline(raw, pipeline)
-        
+
         # add learning targets
         for node, params in self.nodes.items():
 
-            if "add_affs" in node:
-                pipeline += gp.AddAffinities(
-                    affinity_neighborhood=params["neighborhood"],
-                    labels=labels,
-                    affinities=gt_affs,
-                    labels_mask=labels_mask,
-                    affinities_mask=gt_affs_mask)
-            
-            if "balance_labels" in node:
-                pipeline += gp.BalanceLabels(
-                    gt_affs,
-                    affs_weights,
-                    gt_affs_mask)
-
+            if "add_lsds" in node:
+                pipeline += AddLocalShapeDescriptor( 
+                    labels,
+                    gt_lsds,
+                    unlabelled=unlabelled,
+                    lsds_mask=lsds_weights,
+                    downsample=1,
+                    sigma=int(10*voxel_size[-1]),
+                    **params)
 
         # add remaining nodes
         pipeline += gp.IntensityScaleShift(raw, 2,-1)
 
         pipeline += gp.Unsqueeze([raw])
-        pipeline += gp.Stack(1)
+        pipeline += gp.Stack(batch_size)
 
         if pre_cache is not None:
             pipeline += gp.PreCache(num_workers=pre_cache[0], cache_size=pre_cache[1])
@@ -432,31 +429,26 @@ class Pipeline():
                 'input_raw': raw
             },
             outputs={
-                0: pred_affs,
+                0: pred_lsds,
             },
             loss_inputs={
-                0: pred_affs,
-                1: gt_affs,
-                2: affs_weights
+                0: pred_lsds,
+                1: gt_lsds,
+                2: lsds_weights,
             },
             save_every=save_every,
             log_dir=log_dir,
             checkpoint_basename=checkpoint_basename)
 
         pipeline += gp.IntensityScaleShift(raw, 0.5, 0.5)
-        pipeline += gp.Squeeze([raw,gt_affs,pred_affs,affs_weights])
 
         if snapshots_dir is not None:
             pipeline += gp.Snapshot(
                     dataset_names={
                         raw: 'raw',
-                        gt_affs: 'gt_affs',
-                        pred_affs: 'pred_affs',
-                        affs_weights: 'affs_weights'
-                        #labels_mask: 'labels_mask'
-                    },
-                    dataset_dtypes={
-                        gt_affs: np.float32
+                        gt_lsds: 'gt_lsds',
+                        pred_lsds: 'pred_lsds',
+                        lsds_weights: 'lsds_weights',
                     },
                     output_filename='batch_{iteration}.zarr',
                     output_dir=snapshots_dir,

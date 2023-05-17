@@ -8,11 +8,7 @@ from funlib.persistence import open_ds, prepare_ds
 from lsd.train.gp import AddLocalShapeDescriptor
 
 script_dir = os.path.dirname(__file__)
-autoseg_dir = os.path.join(script_dir, '../../../../../')
 
-print(autoseg_dir)
-
-sys.path.append(autoseg_dir)
 from autoseg.utils import SmoothArray, RandomNoiseAugment
 
 class Pipeline():
