@@ -25,7 +25,6 @@ class RandomNoiseAugment(gp.BatchFilter):
         raw = batch.arrays[self.array]
 
         mode = random.choice(["gaussian","poisson","s&p","speckle"])
-
         assert raw.data.dtype == np.float32 or raw.data.dtype == np.float64, "Noise augmentation requires float types for the raw array (not " + str(raw.data.dtype) + "). Consider using Normalize before."
         if self.clip:
             assert raw.data.min() >= -1 and raw.data.max() <= 1, "Noise augmentation expects raw values in [-1,1] or [0,1]. Consider using Normalize before."

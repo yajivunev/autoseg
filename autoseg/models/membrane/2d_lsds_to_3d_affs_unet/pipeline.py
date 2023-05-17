@@ -110,8 +110,8 @@ class Pipeline():
         input_shape = gp.Coordinate(self.input_shape) + increase
         output_shape = gp.Coordinate(self.output_shape) + increase
 
-        voxel_size = open_ds(sources[0][0],sources[0][1]).voxel_size
         default_voxel_size = gp.Coordinate(self.default_voxel_size)
+        voxel_size = gp.Coordinate(self.default_voxel_size)
 
         # XY downsample factor
         if downsample==True:
@@ -264,11 +264,11 @@ class Pipeline():
 
         augs = self.augmentations
 
-        if 'elastic' in augs.keys():
-            source = source + gp.ElasticAugment(rotation_interval=[0, math.pi/2], **augs["elastic"])
-
         if 'simple' in augs.keys():
             source = source + gp.SimpleAugment(**augs["simple"])
+
+        if 'elastic' in augs.keys():
+            source = source + gp.ElasticAugment(rotation_interval=[0, math.pi/2], **augs["elastic"])
 
         if 'noise' in augs.keys():
             source = source + RandomNoiseAugment(raw)
@@ -372,7 +372,7 @@ class Pipeline():
                 pipeline += CustomLSDs( 
                     zeros,
                     gt_lsds,
-                    downsample=1,
+                    downsample=2,
                     sigma=int(10*voxel_size[-1]),
                     **params)
             
