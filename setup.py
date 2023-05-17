@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
         name='autoseg',
@@ -7,9 +7,7 @@ setup(
         url='https://github.com/yajivunev/autoseg',
         author='Vijay Venu',
         author_email='vvenu@utexas.edu',
-        packages=[
-            'autoseg',
-        ],
+        packages=find_packages(),
         install_requires=[
             "torch",
             "numpy",
