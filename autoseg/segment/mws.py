@@ -7,7 +7,7 @@ from typing import Optional
 
 from skimage.transform import rescale
 
-from watershed import watershed_from_boundary_distance
+from .watershed import watershed_from_boundary_distance
 
 def mutex_watershed(
         affs,
