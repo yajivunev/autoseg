@@ -413,6 +413,7 @@ class Pipeline():
                     **params)
 
         # add remaining nodes
+        pipeline += gp.IntensityScaleShift(raw, 2, -1)
         pipeline += gp.Unsqueeze([raw])
         pipeline += gp.Stack(batch_size)
 

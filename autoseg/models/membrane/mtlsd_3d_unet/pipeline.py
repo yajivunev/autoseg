@@ -451,6 +451,7 @@ class Pipeline():
                     gt_affs_mask)
 
         # add remaining nodes
+        pipeline += gp.IntensityScaleShift(raw, 2, -1)
         pipeline += gp.Unsqueeze([raw])
         pipeline += gp.Stack(1)
 
