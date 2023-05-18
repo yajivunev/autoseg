@@ -134,7 +134,7 @@ class Pipeline():
                 ]
 
         padding = [gp.Pad(in_key,context) 
-                if fulll_out_roi
+                if full_out_roi
                 else gp.Pad(in_key,0)
                 for in_key in in_keys
                 ]
