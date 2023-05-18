@@ -167,14 +167,22 @@ class Pipeline():
 
         else:
             sources = sources[0]
-
+        
         # get ROI, grow input_roi by context if full
         if roi is None:
             with gp.build(sources):
                 total_input_roi = sources.spec[in_keys[0]].roi
+               
+                if not total_input_roi.shape.is_multiple_of(voxel_size):
+                    total_input_roi = total_input_roi.snap_to_grid(voxel_size,mode="shrink")
+
                 total_output_roi = total_input_roi.grow(-context, -context)
+
         else:
             roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
+            
+            if not roi.shape.is_multiple_of(voxel_size):
+                roi = roi.snap_to_grid(voxel_size,mode="shrink")
 
             if not full_out_roi:
                 total_input_roi = roi
@@ -182,7 +190,7 @@ class Pipeline():
             else:
                 total_output_roi = roi
                 total_input_roi = total_output_roi.grow(context,context)
-        
+
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
                 f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}" 

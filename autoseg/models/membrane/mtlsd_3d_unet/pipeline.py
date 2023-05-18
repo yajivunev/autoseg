@@ -162,14 +162,22 @@ class Pipeline():
 
         else:
             sources = sources[0]
-
+        
         # get ROI, grow input_roi by context if full
         if roi is None:
             with gp.build(sources):
                 total_input_roi = sources.spec[in_keys[0]].roi
+               
+                if not total_input_roi.shape.is_multiple_of(voxel_size):
+                    total_input_roi = total_input_roi.snap_to_grid(voxel_size,mode="shrink")
+
                 total_output_roi = total_input_roi.grow(-context, -context)
+
         else:
             roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
+            
+            if not roi.shape.is_multiple_of(voxel_size):
+                roi = roi.snap_to_grid(voxel_size,mode="shrink")
 
             if not full_out_roi:
                 total_input_roi = roi
