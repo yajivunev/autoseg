@@ -125,7 +125,7 @@ def predict(
     from pipeline import Pipeline
     pipeline = Pipeline(config_path)
 
-    pipeline, request, output_datasets = pipeline.get_predict_pipeline(
+    pipeline, request, output_datasets, total_output_roi = pipeline.get_predict_pipeline(
             model,
             sources,
             checkpoint_path,
@@ -141,9 +141,9 @@ def predict(
 
     if return_arrays:
         arrays = [batch[gp.ArrayKey(key)].data for key in keys["output"].keys()] 
-        return *arrays, output_datasets
+        return *arrays, output_datasets, total_output_roi
     else:
-        return output_datasets
+        return output_datasets, total_output_roi
 
 
 if __name__ == "__main__":
