@@ -8,6 +8,7 @@ setup(
         author='Vijay Venu',
         author_email='vvenu@utexas.edu',
         packages=find_packages(),
+        include_package_data=True,
         install_requires=[
             "torch",
             "numpy",
