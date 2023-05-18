@@ -92,7 +92,7 @@ class Pipeline():
 
         for out_key,num_channels in self.keys["output"].items():
             out_keys.append(gp.ArrayKey(out_key))
-            if write=="all" or out_key.lower().split('_')[-1] in write: 
+            if write=="all" or out_key.lower().split('_')[-1] in str(write): 
                 out_ds_names.append((f"{out_key.lower()}_{iteration}{section}",num_channels,out_key))
                 
         # I/O shapes and sizes
