@@ -11,7 +11,7 @@ def predict(
         config_path=None,
         pipeline_path=None,
         roi=None,
-        out_roi=None,
+        full_out_roi=False,
         write="all",
         increase=None,
         downsample=False,
@@ -61,9 +61,9 @@ def predict(
 
             roi = ((offset_z, offset_y, offset_x), (size_z, size_y, size_x))
             
-        out_roi (``string``, optional):
+        full_out_roi (``bool``, optional):
                 
-            total_output_roi is equal to the given source ROI when out_roi == "full". 
+            total_output_roi is equal to the given source ROI when full_out_roi is True. 
             Else total_output_roi is shrunk by context of the networks I/O shapes.
 
         write (``string``, optional):
@@ -132,7 +132,7 @@ def predict(
             increase,
             downsample,
             roi,
-            out_roi,
+            full_out_roi,
             write,
             out_file)
 

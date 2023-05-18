@@ -64,7 +64,7 @@ class Pipeline():
             increase,
             downsample,
             roi,
-            out_roi,
+            full_out_roi,
             write,
             out_file):
 
@@ -117,60 +117,70 @@ class Pipeline():
             
         downsample_factors = (1,) * (len(self.input_shape) - 2) + (downsample,downsample)
         voxel_size = voxel_size * gp.Coordinate(downsample_factors) if downsample > 1 else voxel_size
-
-        print(f'DOWNSAMPLE = {downsample}')
-        print(f'DOWNSAMPLE FACTORS = {downsample_factors}')
-        print(f'VOXEL SIZE = {voxel_size}')
         
         # world units (nm)
         input_size = input_shape * voxel_size
         output_size = output_shape * voxel_size
         context = (input_size - output_size) // 2
 
-        # get ROI, grow input_roi by context if full
-        if out_roi == "full":
-            if roi is None:
+        # get zarr sources
+        assert len(sources) == len(in_keys), "Too many sources, probably"
+        
+        # extra unsqueeze for single-channel image arrays
+        extra_unsqueeze = [gp.Unsqueeze([in_key]) 
+                if self.keys["input"][str(in_key)] == 1 
+                else gp.Unsqueeze([in_key])+gp.Squeeze([in_key]) 
+                for in_key in in_keys
+                ]
 
-                ds = open_ds(sources[0][0],sources[0][1])
+        padding = [gp.Pad(in_key,context) 
+                if fulll_out_roi
+                else gp.Pad(in_key,0)
+                for in_key in in_keys
+                ]
 
-                total_output_roi = gp.Roi(
-                        gp.Coordinate(ds.roi.get_offset()),
-                        gp.Coordinate(ds.roi.get_shape()))
+        # make zarr sources
+        sources = tuple(
+                gp.ZarrSource(
+                    sources[i][0],
+                {
+                    fr_in_keys[i]: sources[i][1]
+                },
+                {
+                    fr_in_keys[i]: gp.ArraySpec(interpolatable=True)
+                }) +
+                gp.Normalize(fr_in_keys[i]) +
+                gp.DownSample(fr_in_keys[i],downsample_factors,in_keys[i]) +
+                padding[i] +
+                gp.IntensityScaleShift(in_keys[i], 2,-1) +
+                gp.Unsqueeze([in_keys[i]]) + 
+                extra_unsqueeze[i]
+                for i,source in enumerate(sources))
 
-                total_input_roi = total_output_roi.grow(context, context)
+        if len(sources) > 1:
+            sources += gp.MergeProvider()
 
-            else:
-
-                total_output_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
-                total_input_roi = total_output_roi.grow(context, context)
         else:
-            if roi is None:
+            sources = sources[0]
 
-                ds = open_ds(sources[0][0],sources[0][1])
-
-                total_input_roi = gp.Roi(
-                        gp.Coordinate(ds.roi.get_offset()),
-                        gp.Coordinate(ds.roi.get_shape()))
-
+        # get ROI, grow input_roi by context if full
+        if roi is None:
+            with gp.build(sources):
+                total_input_roi = sources.spec[in_keys[0]].roi
                 total_output_roi = total_input_roi.grow(-context, -context)
+        else:
+            roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
 
+            if not full_out_roi:
+                total_input_roi = roi
+                total_output_roi = total_input_roi.grow(-context, -context)
             else:
-
-                total_input_roi = gp.Roi(gp.Coordinate(roi[0]), gp.Coordinate(roi[1]))
-                total_output_roi = total_input_roi.grow(-context, -context)
-  
-
+                total_output_roi = roi
+                total_input_roi = total_output_roi.grow(context,context)
+        
         for i in range(len(voxel_size)):
             assert total_output_roi.get_shape()[i]/voxel_size[i] >= output_shape[i], \
                 f"total output (write) ROI cannot be smaller than model's output shape, \ni: {i}\ntotal_output_roi: {total_output_roi.get_shape()[i]}, \noutput_shape: {output_shape[i]}, \nvoxel size: {voxel_size[i]}"
-            
-        print(f"TOR: {total_output_roi} \nTIR: {total_input_roi}")
-
-        total_output_roi.snap_to_grid(voxel_size)
-        
-        print(f"TOR: {total_output_roi} \nTIR: {total_input_roi}")
-
-            
  
         # prepare output zarr datasets
         if out_ds_names != []:
@@ -196,40 +206,6 @@ class Pipeline():
         for out_key in out_keys:
             scan_request.add(out_key, output_size)
 
-        # get zarr sources
-        assert len(sources) == len(in_keys), "Too many sources, probably"
-        
-        # extra unsqueeze for single-channel image arrays
-        extra_unsqueeze = [gp.Unsqueeze([in_key]) 
-                if self.keys["input"][str(in_key)] == 1 
-                else gp.Unsqueeze([in_key])+gp.Squeeze([in_key]) 
-                for in_key in in_keys
-                ]
-
-        # make zarr sources
-        sources = tuple(
-                gp.ZarrSource(
-                    sources[i][0],
-                {
-                    fr_in_keys[i]: sources[i][1]
-                },
-                {
-                    fr_in_keys[i]: gp.ArraySpec(interpolatable=True)
-                }) +
-                gp.Normalize(fr_in_keys[i]) +
-                gp.Pad(fr_in_keys[i], None) +
-                gp.DownSample(fr_in_keys[i],downsample_factors,in_keys[i]) +
-                gp.IntensityScaleShift(in_keys[i], 2,-1) +
-                gp.Unsqueeze([in_keys[i]]) + 
-                extra_unsqueeze[i]
-                for i,source in enumerate(sources))
-
-        if len(sources) > 1:
-            sources += gp.MergeProvider()
-
-        else:
-            sources = sources[0]
-        
         # make pipeline
         pipeline = sources
         
